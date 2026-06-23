@@ -6,19 +6,17 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email('Por favor introduce un correo válido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  email: z.string().email('Por favor introduce un correo valido'),
+  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,23 +37,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
       });
+      const result = await response.json().catch(() => null);
 
-      if (authError) {
-        setError(authError.message === 'Invalid login credentials' 
-          ? 'Correo electrónico o contraseña incorrectos.' 
-          : authError.message
-        );
-        setLoading(false);
-      } else {
-        router.push('/app/dashboard');
-        router.refresh();
+      if (!response.ok || result?.error) {
+        setError(result?.error ?? 'No se pudo iniciar sesion. Intenta nuevamente.');
+        return;
       }
+
+      router.push(result?.redirectTo ?? '/app/dashboard');
+      router.refresh();
     } catch (err) {
-      setError('Ocurrió un error inesperado al intentar iniciar sesión.');
+      setError('Ocurrio un error inesperado al intentar iniciar sesion.');
+    } finally {
       setLoading(false);
     }
   };
@@ -67,7 +70,7 @@ export default function LoginPage() {
           Ingresar a tu cuenta
         </h2>
         <p className="text-sm text-stone-500">
-          Introduce tu correo y contraseña para acceder a la agenda
+          Introduce tu correo y contrasena para acceder a la agenda
         </p>
       </div>
 
@@ -80,7 +83,7 @@ export default function LoginPage() {
 
         <div className="space-y-1">
           <label className="text-xs font-semibold text-brand-dark uppercase tracking-wider">
-            Correo electrónico
+            Correo electronico
           </label>
           <input
             type="email"
@@ -99,18 +102,18 @@ export default function LoginPage() {
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-brand-dark uppercase tracking-wider">
-              Contraseña
+              Contrasena
             </label>
             <Link
               href="/recuperar-password"
               className="text-xs text-brand-primary hover:text-brand-gold transition-colors"
             >
-              ¿Olvidaste tu contraseña?
+              Olvidaste tu contrasena?
             </Link>
           </div>
           <input
             type="password"
-            placeholder="••••••••"
+            placeholder="********"
             disabled={loading}
             className={`w-full px-3 py-2.5 border rounded-lg bg-stone-50 text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all text-sm ${
               errors.password ? 'border-red-500 focus:ring-red-200' : 'border-brand-border focus:ring-brand-primary/20'
@@ -130,23 +133,23 @@ export default function LoginPage() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Iniciando sesión...
+              Iniciando sesion...
             </>
           ) : (
-            'Iniciar sesión'
+            'Iniciar sesion'
           )}
         </button>
       </form>
 
       <div className="relative flex py-2 items-center">
         <div className="flex-grow border-t border-brand-border"></div>
-        <span className="flex-shrink mx-4 text-stone-400 text-xs uppercase tracking-widest">ó</span>
+        <span className="flex-shrink mx-4 text-stone-400 text-xs uppercase tracking-widest">o</span>
         <div className="flex-grow border-t border-brand-border"></div>
       </div>
 
       <div className="text-center">
         <p className="text-sm text-stone-600">
-          ¿No tienes una cuenta?{' '}
+          No tienes una cuenta?{' '}
           <Link
             href="/registro"
             className="font-medium text-brand-primary hover:text-brand-gold transition-colors underline underline-offset-4"

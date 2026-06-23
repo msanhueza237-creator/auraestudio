@@ -10,6 +10,10 @@ export function createAdminClient() {
     throw new Error('Supabase admin credentials are not configured')
   }
 
+  if (serviceRoleKey.startsWith('tu-')) {
+    throw new Error('Supabase service role key is still using the placeholder value')
+  }
+
   if (!adminClient) {
     adminClient = createSupabaseClient(supabaseUrl, serviceRoleKey, {
       auth: {
