@@ -2,7 +2,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { LogOut, User } from 'lucide-react';
 
 interface TopbarProps {
@@ -12,15 +11,19 @@ interface TopbarProps {
 
 export default function Topbar({ userName, businessName = 'Aura Estudio' }: TopbarProps) {
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      router.push('/login');
-      router.refresh();
+      const response = await fetch('/auth/logout', { method: 'POST' });
+
+      if (!response.ok) {
+        console.error('Error logging out:', await response.text());
+      }
     } catch (err) {
       console.error('Error logging out:', err);
+    } finally {
+      router.push('/login');
+      router.refresh();
     }
   };
 
