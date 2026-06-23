@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   Bell,
   Calendar,
   ClipboardList,
   LayoutDashboard,
+  LogOut,
   Menu,
   Package,
   Scissors,
@@ -35,11 +36,29 @@ interface MobileNavigationProps {
 }
 
 export default function MobileNavigation({ businessName = 'Aura Estudio' }: MobileNavigationProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const hasMenuActive = menuItems.some((item) => isActive(item.href));
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+
+    try {
+      const response = await fetch('/auth/logout', { method: 'POST' });
+
+      if (!response.ok) {
+        console.error('Error logging out:', await response.text());
+      }
+    } catch (err) {
+      console.error('Error logging out:', err);
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  };
 
   return (
     <>
@@ -90,6 +109,14 @@ export default function MobileNavigation({ businessName = 'Aura Estudio' }: Mobi
                   </Link>
                 );
               })}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-1 flex items-center gap-3 rounded-lg border border-red-100 bg-red-50 px-3 py-3 text-left text-sm font-medium text-red-600"
+              >
+                <LogOut className="h-5 w-5 text-red-500" />
+                <span>Cerrar sesion</span>
+              </button>
             </nav>
           </section>
         </div>
