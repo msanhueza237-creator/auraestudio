@@ -1,0 +1,3 @@
+-- Seed data placeholder for Supabase.
+-- Since the application requires real user isolation via RLS, you can add your custom seed data here
+-- after registering a user and obtaining their auth.users UUID.
