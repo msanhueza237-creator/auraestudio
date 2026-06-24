@@ -113,11 +113,18 @@ export default function ServiciosPage() {
     setFormLoading(true);
     setFormError(null);
     try {
+      let result;
       if (editingService) {
-        await updateService(editingService.id, data);
+        result = await updateService(editingService.id, data);
       } else {
-        await createService(data);
+        result = await createService(data);
       }
+
+      if (!result.success) {
+        setFormError(result.error || 'Error al guardar el servicio');
+        return;
+      }
+
       setIsFormOpen(false);
       loadServices();
     } catch (err: any) {

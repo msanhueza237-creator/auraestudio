@@ -1,8 +1,8 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { ServiceSchema, type ServiceFormInput } from '@/lib/validations/servicio.schema';
-import { revalidatePath } from 'next/cache';
 
 function isMissingMaintenanceDaysColumn(error: { message?: string; code?: string } | null) {
   const message = error?.message?.toLowerCase() ?? '';
@@ -49,11 +49,15 @@ export async function getServices(search?: string) {
 export async function createService(input: ServiceFormInput) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
+
+  if (!user) {
+    return { success: false, error: 'No autorizado' };
+  }
 
   const parsed = ServiceSchema.safeParse(input);
+
   if (!parsed.success) {
-    throw new Error('Datos de entrada no válidos');
+    return { success: false, error: 'Datos de entrada no validos' };
   }
 
   let response = await supabase
@@ -81,21 +85,25 @@ export async function createService(input: ServiceFormInput) {
 
   if (error) {
     console.error('Error creating service:', error);
-    throw new Error(error.message || 'No se pudo crear el servicio');
+    return { success: false, error: error.message || 'No se pudo crear el servicio' };
   }
 
   revalidatePath('/app/servicios');
-  return data;
+  return { success: true, data };
 }
 
 export async function updateService(id: string, input: ServiceFormInput) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
+
+  if (!user) {
+    return { success: false, error: 'No autorizado' };
+  }
 
   const parsed = ServiceSchema.safeParse(input);
+
   if (!parsed.success) {
-    throw new Error('Datos de entrada no válidos');
+    return { success: false, error: 'Datos de entrada no validos' };
   }
 
   let response = await supabase
@@ -121,11 +129,11 @@ export async function updateService(id: string, input: ServiceFormInput) {
 
   if (error) {
     console.error('Error updating service:', error);
-    throw new Error(error.message || 'No se pudo actualizar el servicio');
+    return { success: false, error: error.message || 'No se pudo actualizar el servicio' };
   }
 
   revalidatePath('/app/servicios');
-  return data;
+  return { success: true, data };
 }
 
 export async function deleteService(id: string) {
