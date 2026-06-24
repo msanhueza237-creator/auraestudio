@@ -4,6 +4,23 @@ import { createClient } from '@/lib/supabase/server';
 import { ServiceSchema, type ServiceFormInput } from '@/lib/validations/servicio.schema';
 import { revalidatePath } from 'next/cache';
 
+function isMissingMaintenanceDaysColumn(error: { message?: string; code?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? '';
+
+  return (
+    message.includes('maintenance_days') &&
+    (message.includes('schema cache') ||
+      message.includes('column') ||
+      message.includes('could not find'))
+  );
+}
+
+function withoutMaintenanceDays(input: ServiceFormInput) {
+  const rest = { ...input };
+  delete rest.maintenance_days;
+  return rest;
+}
+
 export async function getServices(search?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,7 +56,7 @@ export async function createService(input: ServiceFormInput) {
     throw new Error('Datos de entrada no válidos');
   }
 
-  const { data, error } = await supabase
+  let response = await supabase
     .from('services')
     .insert({
       user_id: user.id,
@@ -47,6 +64,20 @@ export async function createService(input: ServiceFormInput) {
     })
     .select()
     .single();
+
+  if (isMissingMaintenanceDaysColumn(response.error)) {
+    console.warn('services.maintenance_days is missing in database. Retrying create without it.');
+    response = await supabase
+      .from('services')
+      .insert({
+        user_id: user.id,
+        ...withoutMaintenanceDays(parsed.data),
+      })
+      .select()
+      .single();
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error('Error creating service:', error);
@@ -67,13 +98,26 @@ export async function updateService(id: string, input: ServiceFormInput) {
     throw new Error('Datos de entrada no válidos');
   }
 
-  const { data, error } = await supabase
+  let response = await supabase
     .from('services')
     .update(parsed.data)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
     .single();
+
+  if (isMissingMaintenanceDaysColumn(response.error)) {
+    console.warn('services.maintenance_days is missing in database. Retrying update without it.');
+    response = await supabase
+      .from('services')
+      .update(withoutMaintenanceDays(parsed.data))
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error('Error updating service:', error);
